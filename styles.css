@@ -1,22 +1,34 @@
+body {
+  background: url(https://cdn.pixabay.com/photo/2017/02/15/10/39/background-2068217_960_720.jpg) no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
+h2 {
+  font-size: 20px;
+}
+
+h3 {
+  font-size: 18px;
+  margin-bottom: 15px
+}
+
+table {
+  width: 100%;
+}
+
 td {
-  padding: 10px;
+  padding: 10px 40px 10px 0px;
 }
 
 td:nth-child(2) {
   width: 100%;
-  border-left: 1px solid #dcdcdc;
-}
-
-td:nth-child(3) {
-  border-left: 1px solid #dcdcdc;
 }
 
 tr {
   border-bottom: 1px solid #dcdcdc;
-}
-
-tr:last-child {
-  border-bottom: none;
 }
 
 input[type="text"] {
@@ -44,6 +56,23 @@ textarea {
   left: 0;
 }
 
+.content-wrapper {
+   
+    margin-top: 5%;
+    
+}
+
+.recipes {
+  height: 90%;
+  overflow-y: auto;
+}
+
+.no-recipes {
+  background: white;
+  border-radius: 3px;
+  padding: 15px;
+}
+
 .recipe-list {
   list-style-type: none;
   -webkit-padding-start: 0;
@@ -51,15 +80,32 @@ textarea {
 }
 
 .recipe {
+  overflow: hidden;
   background: white;
   border: 1px solid #dcdcdc;
-  border-radius: 4px;
+  border-radius: 3px;
   margin-bottom: 5px;
 }
 
 .recipe-head {
-  background: whitesmoke;
   padding: 10px;
+}
+
+.is-open-indicator {
+  float: right;
+  font-size: 20px;
+  margin-right: 5px;
+  transition: transform 0.2s;
+  position: relative;
+  top: 4px;
+}
+
+.is-open-indicator.opened {
+  transform: rotate(-90deg);
+}
+
+.is-open-indicator.closed {
+  transform: rotate(0deg);
 }
 
 .recipe-name {
@@ -70,10 +116,6 @@ textarea {
 
 .edit-recipe {
   float: right;
-  /*color: green;
-  background: white;
-  border: 1px solid #d8d4d4;
-  border-radius: 3px;*/
   position: relative;
   bottom: 2px;
   margin-right: 5px;
@@ -82,10 +124,6 @@ textarea {
 }
 
 .delete-recipe {
-  /*background: white;
-  border: 1px solid #d8d4d4;
-  border-radius: 3px;
-  color: red;*/
   float: right;
   position: relative;
   bottom: 2px;
@@ -95,7 +133,7 @@ textarea {
 
 .recipe-details {
   border-top: 1px solid #dcdcdc;
-  padding: 10px;
+  padding: 15px;
 }
 
 .ingredients-table-wrapper {
@@ -106,11 +144,9 @@ textarea {
 
 .recipe-directions {
   background: white;
-  /*border: 1px solid #dcdcdc;*/
-  border-radius: 4px;
   text-align: justify;
-  margin-top: 10px;
-  padding: 2px;
+  margin-top: 30px;
+  padding-bottom: 10px;
 }
 
 .recipe-directions p {
@@ -132,7 +168,6 @@ textarea {
 }
 
 .create-recipe {
-  width: 50%;
   background-color: white;
   margin-left: auto;
   margin-right: auto;
@@ -145,52 +180,44 @@ textarea {
   margin-bottom: 20px;
 }
 
-.create-recipe-head h5 {
+.create-recipe-head h3 {
   display: inline;
 }
 
-.close {
+.close-modal {
   float: right;
 }
 
-.create-recipe-content {
-  margin-bottom: 20px;
-}
-
-.name {
+.create-recipe-name {
   margin-bottom: 5px !important;
   width: 100%;
 }
 
-.create-recipe-ingredient {
+.create-recipe-ingredient-field {
   margin-bottom: 5px;
 }
 
-.ingredient {
+.create-recipe-ingredient {
   width: 73%;
   margin-right: 1%;
 }
 
-.amount {
+.create-recipe-amount {
   width: 20%;
   margin-right: 2%;
 }
 
-.directions {
+.create-recipe-directions {
   width: 100%;
   border-radius: 3px;
-  /*margin-top: 10px;*/
   border-color: #dcdcdc;
-}
-
-.directions:disabled {
-  width: 100%;
-  border: none;
-  text-align: justify;
-  background-color: white;
-  resize: none;
 }
 
 .create {
   float: right;
+  margin-top: 20px;
+}
+
+.add-ingredient {
+  margin-top: 20px;
 }

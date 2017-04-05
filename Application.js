@@ -1,36 +1,35 @@
-function clearStorage() {
-  return localStorage.clear();
+/*(function() {
+  localStorage.clear();
+})();*/
+
+function deleteRecipeFromStorage(id) {
+  localStorage.removeItem(id);   
 }
 
-function deleteRecipeFromStorage(name) {
-    if(confirm('Are you sure you want to delete this recipe?')) {
-      localStorage.removeItem(name);   
-    }
-  }
-
-// save recipe to local storage
 function saveRecipeToStorage(name, ingredients, directions) {
   const ls = localStorage;
-  if (ls) {
-    ls.setItem('_TatuPutto_recipes_' + name, JSON.stringify({ingredients, directions}));
+  if(ls) {
+    // generate id to recipe based on current date
+    const recipeId = 'TatuPutto_recipes_' + new Date().getTime();
+    ls.setItem(recipeId, JSON.stringify({name, ingredients, directions}));
   } else {
     console.log('Your browser doesn\'t support local storage.');
   }
 }
 
-function editRecipeInStorage(oldName, newName,
-    ingredients, directions) {
+
+function editRecipeInStorage(id, name, ingredients, directions) {
   // delete old version of the recipe
-  localStorage.removeItem(oldName);
+  localStorage.removeItem(id);
   const ls = localStorage;
   if (ls) {
-    ls.setItem('_TatuPutto_recipes_' + newName, JSON.stringify({ingredients, directions}));
+    const recipeId = 'TatuPutto_recipes_' + new Date().getTime();
+    ls.setItem(recipeId, JSON.stringify({name, ingredients, directions}));
   } else {
     console.log('Your browser doesn\'t support local storage.');
   }
 }
 
-// get recipes from local storage
 function getRecipesFromStorage() {
   const ls = localStorage;
   if (ls) {
@@ -38,13 +37,12 @@ function getRecipesFromStorage() {
     let recipes = [];
     // loop through the local storage keys
     for(let i = 0; i < recipesInStorage.length; i++) {
-      const name = recipesInStorage[i]
-          .replace(/_TatuPutto_recipes_/g, '');
       const recipe = ls.getItem(recipesInStorage[i]);
       const parsedRecipe = JSON.parse(recipe);
 
       recipes.push({
-        name,
+        id: recipesInStorage[i],
+        name: parsedRecipe.name,
         ingredients: parsedRecipe.ingredients,
         directions: parsedRecipe.directions
       });
@@ -68,7 +66,7 @@ class Application extends React.Component {
     this.closeModal = this.closeModal.bind(this);
     this.state = {
       recipes: [],
-      activeRecipeName: null,
+      activeRecipeId: null,
       activeRecipeOpen: false,
       modalOpen: false,
       editing: false,
@@ -76,63 +74,56 @@ class Application extends React.Component {
     };
   }
   
-  // get recipes from local storage when component is mounted
   componentDidMount() {
     this.getRecipes();
   }
 
-  // get recipes from local storage
   getRecipes() {
     this.setState({recipes: getRecipesFromStorage()});   
   }
   
-  // open recipe details
-  showRecipeDetails(name) {
-    const activeRecipe = this.state.activeRecipeName;
+  showRecipeDetails(id) {
+    const activeRecipeId = this.state.activeRecipeId;
     const isOpen = this.state.activeRecipeOpen;
 
     // close details if click happens to same recipe
-    if(activeRecipe == name && isOpen) {
-      return this.setState({
-        activeRecipeName: null,
+    if(activeRecipeId == id && isOpen) {
+      this.setState({
+        activeRecipeId: null,
         activeRecipeOpen: false,
       });
-    // close currently open details and
-    // open newly selected recipes details
-    } else if(activeRecipe != name) {
+    // close currently open details and open selected recipes details
+    } else if(activeRecipeId != id) {
         this.setState({
-          activeRecipeName: name,
+          activeRecipeId: id,
           activeRecipeOpen: true,
         });
     }
   }
   
-  deleteRecipe(name) {
-    // delete recipe from local storage
-    deleteRecipeFromStorage(name);
-    // delete recipe from state
-    this.setState({
-      recipes: this.state.recipes.filter(
-          (recipe) => recipe.name != name)
-    });
+  deleteRecipe(id) {
+    if(confirm('Are you sure you want to delete this recipe?')) {
+      deleteRecipeFromStorage(id);
+      this.setState({
+        recipes: this.state.recipes.filter((recipe) => recipe.id != id)
+      });
+    }
   }
   
   // open modal and set up state for editing
-  editRecipe(name) {
+  editRecipe(id) {
     this.setState({
       modalOpen: true,
       editing: true,
       recipeBeingEdited: this.state.recipes.filter(
-          (recipe) => recipe.name == name)[0]
+          (recipe) => recipe.id == id)[0]
     });
   }
   
-  // open modal window
   openModal() {
     this.setState({modalOpen: true});   
   }
   
-  // close modal window and cancel edititing
   closeModal() {
     this.setState({
       modalOpen: false,
@@ -153,16 +144,17 @@ class Application extends React.Component {
             recipe={this.state.recipeBeingEdited}
           />
         }
-        <div className='content-wrapper col-md-8 offset-2'>
+        <div className='content-wrapper col-lg-8 col-md-10 col-sm-12 col-xs-12'>
           <RecipeList 
             recipes={this.state.recipes}
-            activeRecipeName={this.state.activeRecipeName}
+            activeRecipeId={this.state.activeRecipeId}
+            activeRecipeOpen={this.state.activeRecipeOpen}
             showRecipeDetails={this.showRecipeDetails}
             deleteRecipe={this.deleteRecipe}
             editRecipe={this.editRecipe}
             editing={this.state.editing}
           />
-          <button className='btn btn-info' onClick={this.openModal}>
+          <button className='new-recipe btn btn-info' onClick={this.openModal}>
             New Recipe
           </button>
         </div>
@@ -175,15 +167,16 @@ class Application extends React.Component {
 function RecipeList(props) {
   const recipes = props.recipes.map((recipe) => {
     return (
-      <Recipe 
+      <Recipe
+        id={recipe.id}
         name={recipe.name}
         ingredients={recipe.ingredients}
         directions={recipe.directions}
-        activeRecipeName={props.activeRecipeName}
+        activeRecipeId={props.activeRecipeId}
+        activeRecipeOpen={props.activeRecipeOpen}
         showRecipeDetails={props.showRecipeDetails}
         deleteRecipe={props.deleteRecipe}
         editRecipe={props.editRecipe}
-        editing={props.editing}
       />
     );
   });
@@ -194,36 +187,39 @@ function RecipeList(props) {
             <ul className='recipe-list'>
               {recipes} 
             </ul>
-            : 
-            <p>You don't have any recipes yet.</p>
+            :
+            <p className='no-recipes'>You don't have any recipes yet.</p>
         }
     </div>
   );
 }
 
 function Recipe(props) {
-  console.log(props)
+  const isOpen = props.id == props.activeRecipeId ? 'opened' : 'closed';
+  
   return (
-    <li className='recipe'>
+    <li key={props.id} className='recipe'>
       <div className='recipe-head'
-          onClick={() => props.showRecipeDetails(props.name)}>
+          onClick={() => props.showRecipeDetails(props.id)}>
         <h2 className='recipe-name'>{props.name}</h2>
+        <i className={'fa fa-chevron-left is-open-indicator ' + isOpen} />
       </div>
-      {props.name == props.activeRecipeName &&
+      {props.id == props.activeRecipeId &&
         <div className='recipe-details'>
           <div className='recipe-actions'>
             <button className='delete-recipe btn btn-danger'
-                onClick={() => props.deleteRecipe(props.name)}>
+                onClick={() => props.deleteRecipe(props.id)}>
               <i className='fa fa-trash-o' /> Delete 
             </button>
             <button className='edit-recipe btn btn-success'
-                onClick={() => props.editRecipe(props.name)}>
+                onClick={() => props.editRecipe(props.id)}>
               <i className='fa fa-edit' /> Edit
             </button>
           </div>
-          <IngredientsTable ingredients={props.ingredients} />
-          <div className='recipe-directions'>
-              <p>{props.directions}</p>
+          <IngredientsTable key={props.directions} ingredients={props.ingredients} />
+          <div className='recipe-directions'> 
+            <h3>Directions</h3>
+            <p>{props.directions}</p>
           </div>
         </div>
       }
@@ -234,7 +230,7 @@ function Recipe(props) {
 function IngredientsTable(props) {
   const tableRows = props.ingredients.map((ingredient) => {
     return (
-      <tr> 
+      <tr key={ingredient.ingredient}> 
         <td>
           {ingredient.amount}
         </td>
@@ -246,7 +242,8 @@ function IngredientsTable(props) {
   });
   
   return (
-    <div className='ingredients-table-wrapper'>
+    <div className='recipe-ingredients'>
+      <h3>Ingredients</h3>
       <table>
         {tableRows}
       </table>
@@ -254,26 +251,30 @@ function IngredientsTable(props) {
   );
 }
 
-
 class CreateOrEditRecipe extends React.Component {
   constructor() {
     super();
-    this.addField = this.addField.bind(this);
+    this.addIngredientField = this.addIngredientField.bind(this);
+    this.getFormData = this.getFormData.bind(this);
     this.createOrEditRecipe = this.createOrEditRecipe.bind(this);
   }
- 
+  
   componentWillMount() {
     const recipe = this.props.recipe;
     
+    // if editing, set state to reflect recipe info
     if(this.props.editing) {
       this.setState({
+        id: recipe.id,
         name: recipe.name,
         directions: recipe.directions,
+        // create ids for ingredients to be used as keys for ingredient fields
         ingredients: recipe.ingredients.map((ingredient, i) => {
           return {...ingredient, id: i}
         }),
         ingredientFieldsCreated: recipe.ingredients.length,
-      });  
+      });
+    // if not editing, set empty values and start form with 2 empty ingredient fields
     } else {
       this.setState({
         name: '',
@@ -287,14 +288,18 @@ class CreateOrEditRecipe extends React.Component {
     }
   }
   
-  // 
   componentDidMount() {
-    const element = document.querySelector('.directions');
-    element.style.height = '' + (element.scrollHeight + 10) + 'px'; 
+    // set textarea height to match the content (directions)
+    const element = document.querySelector('.create-recipe-directions');
+    element.style.height = '' + (element.scrollHeight + 10) + 'px';
+    
+    // set overlay height to completely wrap modal window
+    const documentHeight = document.body.scrollHeight;
+    const overlay = document.getElementsByClassName('overlay')[0];
+    overlay.style.height = (documentHeight + 20) + 'px';
   } 
 
-  // add ingredient field
-  addField() {
+  addIngredientField() {
     this.setState({
       ingredients: this.state.ingredients.concat({
         id: this.state.ingredientFieldsCreated,
@@ -305,22 +310,17 @@ class CreateOrEditRecipe extends React.Component {
     });
   }
   
-  // remove ingredient field
   removeField(index) {
     this.setState({
-      ingredients: this.state.ingredients.filter(
-          (_, i) => i !== index)
+      ingredients: this.state.ingredients.filter((_, i) => i !== index)
     });
   }
   
-  createOrEditRecipe() {
-    const data = this.getFormData();
-    
+  createOrEditRecipe(name, directions, ingredients) {
     if(this.props.editing) {
-      const oldName = this.state.name;
-      editRecipeInStorage(oldName, data.name, data.ingredients, data.directions);  
+      editRecipeInStorage(this.state.id, name, ingredients, directions);  
     } else {
-      saveRecipeToStorage(data.name, data.ingredients, data.directions);  
+      saveRecipeToStorage(name, ingredients, directions);  
     }
     
     this.props.getRecipes();
@@ -328,42 +328,57 @@ class CreateOrEditRecipe extends React.Component {
   }
 
   getFormData() {
-    const name = document.getElementsByClassName('name')[0].value;
-    const directions = document.getElementsByClassName('directions')[0].value;
-    const ingredientFields = document.getElementsByClassName('create-recipe-ingredient');
+    const name = document.getElementsByClassName('create-recipe-name')[0].value;
+    const directions = document.getElementsByClassName('create-recipe-directions')[0].value;
+    const ingredientFields = document.getElementsByClassName('create-recipe-ingredient-field');
     let ingredients = [];
     
+    // submit form if any of the fields are empty == trigger required check
+    if(!name || !directions || !ingredientFields) {
+       return true;
+    }      
+    
     for(let i = 0; i < ingredientFields.length; i++) {
-      const ingredient = document.getElementsByClassName('ingredient')[i].value;
-      const amount = document.getElementsByClassName('amount')[i].value;
+      const ingredient = document.getElementsByClassName('create-recipe-ingredient')[i].value;
+      const amount = document.getElementsByClassName('create-recipe-amount')[i].value;
     
       if(ingredient && amount) {
         ingredients.push({ingredient, amount});
-      }     
+      } else {
+        return true;
+      }
     }
-    return {name, directions, ingredients};
+    
+    // if everything checks out, push recipe to localstorage and cancel form submission
+    this.createOrEditRecipe(name, directions, ingredients);
+    return false;
   }
   
   
   createIngredientFields() {
-    console.log(this.state.ingredients)
     let ingredientFields = [];
     for(let i = 0; i < this.state.ingredients.length; i++) {
       const ingredient = this.state.ingredients[i];
       ingredientFields.push(
-         <div key={ingredient.id.toString()} className='create-recipe-ingredient'>
+         <div key={ingredient.id.toString()}
+            className='create-recipe-ingredient-field'>
           <span>
             <input           
               type='text'
-              className='ingredient'
+              className='create-recipe-ingredient'
               defaultValue={ingredient.ingredient}
               placeholder={(i + 1) + '. ingredient'}
+              required={true}
             />
           </span>
           <span>
-            <input type='text' className='amount'
+            <input 
+              type='text'
+              className='create-recipe-amount'
               defaultValue={ingredient.amount}
-                placeholder='Amount' />
+              placeholder='Amount'
+              required={true}
+            />
           </span>
           <span>
               <i className='fa fa-remove' 
@@ -378,38 +393,45 @@ class CreateOrEditRecipe extends React.Component {
   render() {
     return (
       <div className='overlay'>
-        <div className='create-recipe'>
+        <div className='create-recipe col-lg-6 col-md-8 col-sm-10 col-xs-10'>
           <div className='create-recipe-head'>
-            <h5>{this.props.editing ?
-                'Edit Recipe' : 'Create a New Recipe'}</h5>
-            <i className='close fa fa-remove' 
+            <h3>{this.props.editing ?
+                'Edit Recipe' : 'Create a New Recipe'}</h3>
+            <i className='close-modal fa fa-remove' 
                 onClick={this.props.close} />
           </div>
           
           <div className='create-recipe-content'>
-            <input 
-              type='text'
-              className='name'
-              defaultValue={this.state.name}
-              placeholder='Recipe'
-            />
-            <textarea 
-              className='directions'
-              rows='4'
-              defaultValue={this.state.directions}    
-              placeholder='Directions'
-            />   
-            {this.createIngredientFields()} 
-          </div>
-          
-          <div className='create-recipe-footer'>
-            <button className='btn btn-info'
-                onClick={this.addField}>Add Ingredient</button>
-            <button className='create btn btn-success'
-                onClick={this.createOrEditRecipe}>
-              {this.props.editing ? 'Save Changes' : 'Create'}
-            </button>         
-          </div>
+            <form>
+              <input 
+                type='text'
+                className='create-recipe-name'
+                defaultValue={this.state.name}
+                placeholder='Recipe'
+                required={true}
+              />
+              <textarea 
+                className='create-recipe-directions'
+                rows='4'
+                defaultValue={this.state.directions}    
+                placeholder='Directions'
+                required={true}
+              />   
+              {this.createIngredientFields()}
+              <input
+                type='submit'
+                className='create btn btn-success'
+                value={this.props.editing ? 'Save Changes' : 'Create'}
+                onClick={this.getFormData}
+              />
+            </form>
+            <button 
+              className='add-ingredient btn btn-info'
+              onClick={this.addIngredientField}
+            >
+              Add Ingredient
+            </button>
+          </div>   
         </div>  
       </div>
     );
